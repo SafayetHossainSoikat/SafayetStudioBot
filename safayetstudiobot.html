@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Safayet Studio - Reward Bot v2</title>
+    
+    <!-- Scripts -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    
+    <!-- YOUR AD SDK -->
+    <script src='//libtl.com/sdk.js' data-zone='10866872' data-sdk='show_10866872'></script>
+
+    <style>
+        body { font-family: 'Outfit', sans-serif; background-color: #f7f9fc; color: #1e293b; overflow-x: hidden; }
+        .tab-content { transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
+        .glass-header { background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(12px); border-bottom: 1px solid rgba(226, 232, 240, 0.8); }
+        .nav-active { color: #2563eb !important; position: relative; }
+        .nav-active::after { content: ''; position: absolute; bottom: -5px; width: 6px; height: 6px; background: #2563eb; border-radius: 50%; }
+        .withdraw-input { border: 2px solid #f1f5f9; transition: all 0.3s ease; }
+        .withdraw-input:focus { border-color: #3b82f6; background: white; outline: none; box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1); }
+        .hidden { display: none !important; }
+        .ad-btn-active:active { transform: scale(0.96); opacity: 0.9; }
+        
+        /* Premium Gradient */
+        .card-grad { background: linear-gradient(135deg, #1e293b 0%, #334155 100%); }
+    </style>
+</head>
+<body>
+
+    <!-- Loading Screen -->
+    <div id="loader" class="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-white">
+        <div class="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+        <p class="mt-4 font-black text-slate-400 text-[10px] tracking-[0.2em] uppercase">Safayet Studio</p>
+    </div>
+
+    <div id="app" class="max-w-md mx-auto min-h-screen pb-28 hidden">
+        
+        <!-- Sticky Header -->
+        <header class="sticky top-0 z-50 glass-header px-5 py-4 flex justify-between items-center">
+            <div class="flex items-center space-x-3">
+                <div id="user-pfp" class="relative">
+                    <!-- Image Injected Here -->
+                </div>
+                <div>
+                    <p id="user-name-display" class="text-sm font-extrabold leading-none">Loading...</p>
+                    <span class="text-[9px] font-bold text-green-500 uppercase tracking-wider">Premium User</span>
+                </div>
+            </div>
+            <div class="flex items-center bg-blue-50 border border-blue-100 px-3 py-1.5 rounded-2xl">
+                <i class="fas fa-coins text-yellow-500 text-xs mr-2"></i>
+                <span id="header-balance" class="font-black text-blue-700 text-sm">0</span>
+            </div>
+        </header>
+
+        <main class="px-5 mt-4">
+            
+            <!-- HOME TAB -->
+            <section id="tab-home" class="tab-content space-y-6">
+                <!-- Main Balance Card -->
+                <div class="card-grad p-8 rounded-[2.5rem] text-white shadow-2xl relative overflow-hidden">
+                    <div class="relative z-10">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <p class="text-slate-400 text-[10px] font-bold uppercase tracking-widest">Available Coins</p>
+                                <h1 id="main-balance" class="text-5xl font-black mt-2">0</h1>
+                            </div>
+                            <div class="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center text-xl backdrop-blur-md">
+                                <i class="fas fa-wallet"></i>
+                            </div>
+                        </div>
+                        
+                        <div class="flex gap-3 mt-8">
+                            <div class="flex-1 bg-white/5 p-4 rounded-3xl border border-white/5">
+                                <p class="text-[8px] text-slate-400 font-bold uppercase">Today Ads</p>
+                                <p id="home-ads-count" class="text-lg font-black mt-1">0/50</p>
+                            </div>
+                            <div class="flex-1 bg-white/5 p-4 rounded-3xl border border-white/5">
+                                <p class="text-[8px] text-slate-400 font-bold uppercase">Referrals</p>
+                                <p id="home-ref-count" class="text-lg font-black mt-1">0</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Action Grid -->
+                <div class="grid grid-cols-2 gap-4">
+                    <button onclick="showTab('earn')" class="bg-white p-6 rounded-[2rem] shadow-sm border border-slate-100 flex flex-col items-center ad-btn-active">
+                        <div class="w-14 h-14 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center text-2xl mb-4">
+                            <i class="fas fa-play"></i>
+                        </div>
+                        <span class="text-xs font-black uppercase tracking-tight">Earn Coins</span>
+                    </button>
+                    <button onclick="showTab('withdraw')" class="bg-white p-6 rounded-[2rem] shadow-sm border border-slate-100 flex flex-col items-center ad-btn-active">
+                        <div class="w-14 h-14 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center text-2xl mb-4">
+                            <i class="fas fa-hand-holding-usd"></i>
+                        </div>
+                        <span class="text-xs font-black uppercase tracking-tight">Payout</span>
+                    </button>
+                </div>
+
+                <!-- Daily Banner -->
+                <div onclick="claimDaily()" class="bg-blue-600 p-5 rounded-[2rem] flex items-center justify-between text-white shadow-xl shadow-blue-100 cursor-pointer active:scale-95 transition-all">
+                    <div class="flex items-center space-x-4">
+                        <div class="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center text-2xl"><i class="fas fa-gift"></i></div>
+                        <div>
+                            <p class="text-[10px] font-bold text-blue-100 uppercase">Gift Box</p>
+                            <h4 class="font-black text-sm">Claim Daily Bonus</h4>
+                        </div>
+                    </div>
+                    <i class="fas fa-arrow-right opacity-50"></i>
+                </div>
+            </section>
+
+            <!-- EARN TAB -->
+            <section id="tab-earn" class="tab-content hidden space-y-6">
+                <div class="bg-white p-8 rounded-[3rem] shadow-sm border border-slate-100 text-center">
+                    <div class="w-24 h-24 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-6 text-blue-600 text-4xl shadow-inner">
+                        <i class="fas fa-tv"></i>
+                    </div>
+                    <h2 class="text-2xl font-black">Video Rewards</h2>
+                    <p class="text-slate-400 text-xs mt-3 px-4 leading-relaxed">Watch a short video ad and earn <span class="text-blue-600 font-bold">10 Coins</span> instantly.</p>
+                    
+                    <div class="my-8 px-4">
+                        <div class="flex justify-between text-[10px] font-black text-slate-400 uppercase mb-3">
+                            <span>Today's Progress</span>
+                            <span id="earn-ad-text">0/50</span>
+                        </div>
+                        <div class="w-full bg-slate-100 h-3 rounded-full overflow-hidden">
+                            <div id="earn-ad-bar" class="bg-blue-600 h-full transition-all duration-700" style="width: 0%"></div>
+                        </div>
+                    </div>
+
+                    <button id="btn-play-ad" onclick="handleAdClick()" class="w-full bg-blue-600 text-white py-5 rounded-[1.5rem] font-black text-sm shadow-xl shadow-blue-200 ad-btn-active">
+                        PLAY AD NOW
+                    </button>
+
+                    <div id="ad-status-box" class="hidden mt-6 p-4 bg-blue-50 rounded-2xl border border-blue-100">
+                        <p class="text-[11px] font-black text-blue-600 animate-pulse uppercase tracking-widest">Ad Verification: <span id="ad-sec">20</span>s</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- WITHDRAW TAB -->
+            <section id="tab-withdraw" class="tab-content hidden space-y-6">
+                <div class="bg-white p-8 rounded-[3rem] shadow-sm border border-slate-100">
+                    <h3 class="text-xl font-black mb-6 flex items-center">
+                        <i class="fas fa-university mr-3 text-blue-600"></i> Withdrawal
+                    </h3>
+                    
+                    <div class="space-y-5">
+                        <div class="space-y-2">
+                            <label class="text-[10px] font-black text-slate-400 uppercase ml-2">Payment Method</label>
+                            <div class="relative">
+                                <select id="wd-method" class="withdraw-input w-full p-4 bg-slate-50 rounded-2xl text-sm font-bold appearance-none">
+                                    <option value="bKash">bKash Personal</option>
+                                    <option value="Nagad">Nagad Personal</option>
+                                    <option value="Binance">Binance Pay ID</option>
+                                </select>
+                                <div class="absolute right-4 top-4 text-slate-400 pointer-events-none">
+                                    <i class="fas fa-chevron-down"></i>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="space-y-2">
+                            <label class="text-[10px] font-black text-slate-400 uppercase ml-2">Wallet Info / Number</label>
+                            <div class="relative">
+                                <span class="absolute left-4 top-4 text-slate-400"><i class="fas fa-id-card"></i></span>
+                                <input type="text" id="wd-account" placeholder="Enter Details" class="withdraw-input w-full p-4 pl-12 bg-slate-50 rounded-2xl text-sm font-bold">
+                            </div>
+                        </div>
+
+                        <div class="space-y-2">
+                            <label class="text-[10px] font-black text-slate-400 uppercase ml-2">Coin Amount</label>
+                            <div class="relative">
+                                <span class="absolute left-4 top-4 text-slate-400"><i class="fas fa-coins"></i></span>
+                                <input type="number" id="wd-amount" placeholder="Min 50000" class="withdraw-input w-full p-4 pl-12 bg-slate-50 rounded-2xl text-sm font-bold">
+                            </div>
+                        </div>
+
+                        <button onclick="processWithdraw()" class="w-full bg-slate-900 text-white py-5 rounded-2xl font-black text-sm shadow-xl mt-4 ad-btn-active">
+                            CONFIRM WITHDRAWAL
+                        </button>
+                    </div>
+                </div>
+
+                <!-- History Section -->
+                <div id="wd-history" class="space-y-3 pb-10">
+                    <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">Payment Records</h4>
+                    <!-- History rows will go here -->
+                </div>
+            </section>
+
+            <!-- REFER TAB -->
+            <section id="tab-refer" class="tab-content hidden space-y-6">
+                <div class="bg-white p-10 rounded-[3rem] shadow-sm border border-slate-100 text-center">
+                    <div class="w-20 h-20 bg-indigo-50 text-indigo-600 rounded-full flex items-center justify-center mx-auto mb-6 text-3xl">
+                        <i class="fas fa-user-plus"></i>
+                    </div>
+                    <h2 class="text-2xl font-black">Invite Friends</h2>
+                    <p class="text-slate-400 text-xs mt-3 leading-relaxed">Share your link and get <span class="text-indigo-600 font-bold">100 Coins</span> instantly when they join.</p>
+                    
+                    <div class="mt-8 bg-slate-50 p-3 rounded-2xl border border-slate-200 flex items-center justify-between">
+                        <p id="ref-url" class="text-[10px] font-bold text-blue-600 truncate px-2">Generating...</p>
+                        <button onclick="copyRef()" class="bg-blue-600 text-white px-5 py-3 rounded-xl font-black text-[10px] uppercase">Copy</button>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+
+        <!-- Fixed Nav -->
+        <nav class="fixed bottom-6 left-6 right-6 bg-white/90 backdrop-blur-xl h-20 rounded-[2rem] shadow-2xl border border-white/20 flex justify-around items-center px-4 z-[60]">
+            <button onclick="showTab('home')" class="nav-btn flex flex-col items-center p-2 text-slate-400 nav-active" data-tab="home">
+                <i class="fas fa-home text-xl"></i>
+                <span class="text-[9px] font-black mt-1 uppercase">Home</span>
+            </button>
+            <button onclick="showTab('earn')" class="nav-btn flex flex-col items-center p-2 text-slate-400" data-tab="earn">
+                <i class="fas fa-play-circle text-xl"></i>
+                <span class="text-[9px] font-black mt-1 uppercase">Ads</span>
+            </button>
+            <button onclick="showTab('refer')" class="nav-btn flex flex-col items-center p-2 text-slate-400" data-tab="refer">
+                <i class="fas fa-users text-xl"></i>
+                <span class="text-[9px] font-black mt-1 uppercase">Ref</span>
+            </button>
+            <button onclick="showTab('withdraw')" class="nav-btn flex flex-col items-center p-2 text-slate-400" data-tab="withdraw">
+                <i class="fas fa-wallet text-xl"></i>
+                <span class="text-[9px] font-black mt-1 uppercase">Wallet</span>
+            </button>
+        </nav>
+    </div>
+
+    <!-- Firebase System -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, doc, getDoc, setDoc, updateDoc, increment, collection, onSnapshot, addDoc, query, where, orderBy, limit, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyAPYLX1l_iJJDkNtIPYVjRKixdodnq_3Wk",
+            authDomain: "safayetstudiobot.firebaseapp.com",
+            projectId: "safayetstudiobot",
+            storageBucket: "safayetstudiobot.firebasestorage.app",
+            messagingSenderId: "733971192083",
+            appId: "1:733971192083:web:831c4f6215e7ae39cfe2e6"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const tg = window.Telegram.WebApp;
+
+        let currentUser = null;
+        let isAdOn = false;
+
+        async function init() {
+            tg.expand();
+            tg.ready();
+
+            const user = tg.initDataUnsafe?.user || { id: 733971192083, first_name: "User", last_name: "", username: "guest", photo_url: "" };
+            const uid = user.id.toString();
+            const fullName = `${user.first_name} ${user.last_name || ""}`.trim();
+
+            const userRef = doc(db, "users", uid);
+            const snap = await getDoc(userRef);
+
+            if (!snap.exists()) {
+                const startParam = tg.initDataUnsafe?.start_param;
+                currentUser = {
+                    uid, name: fullName, username: user.username || "",
+                    balance: 0, totalEarned: 0, adsToday: 0,
+                    lastDaily: 0, referralCount: 0, photo: user.photo_url || "",
+                    joinedAt: Date.now()
+                };
+                await setDoc(userRef, currentUser);
+                
+                if (startParam && startParam !== uid) {
+                    const refRef = doc(db, "users", startParam);
+                    await updateDoc(refRef, { balance: increment(100), totalEarned: increment(100), referralCount: increment(1) });
+                }
+            } else {
+                await updateDoc(userRef, { name: fullName, photo: user.photo_url || "" });
+            }
+
+            onSnapshot(userRef, (doc) => {
+                currentUser = doc.data();
+                updateUI();
+            });
+
+            loadHistory(uid);
+            document.getElementById('loader').classList.add('hidden');
+            document.getElementById('app').classList.remove('hidden');
+        }
+
+        function updateUI() {
+            const formattedBal = Math.floor(currentUser.balance).toLocaleString();
+            document.getElementById('user-name-display').innerText = currentUser.name;
+            document.getElementById('header-balance').innerText = formattedBal;
+            document.getElementById('main-balance').innerText = formattedBal;
+            document.getElementById('home-ads-count').innerText = `${currentUser.adsToday}/50`;
+            document.getElementById('home-ref-count').innerText = currentUser.referralCount || 0;
+            document.getElementById('earn-ad-text').innerText = `${currentUser.adsToday}/50`;
+            document.getElementById('earn-ad-bar').style.width = `${(currentUser.adsToday / 50) * 100}%`;
+            document.getElementById('ref-url').innerText = `https://t.me/SafayetStudioBot?start=${currentUser.uid}`;
+
+            const pfpBox = document.getElementById('user-pfp');
+            if (currentUser.photo) {
+                pfpBox.innerHTML = `<img src="${currentUser.photo}" class="w-10 h-10 rounded-2xl border-2 border-white shadow-sm object-cover">`;
+            } else {
+                pfpBox.innerHTML = `<div class="w-10 h-10 bg-blue-600 rounded-2xl flex items-center justify-center text-white font-black border-2 border-white shadow-sm">${currentUser.name.charAt(0)}</div>`;
+            }
+        }
+
+        // --- AD HANDLING ---
+        window.handleAdClick = async () => {
+            if (isAdOn) return;
+            if (currentUser.adsToday >= 50) { tg.showAlert("Daily limit reached!"); return; }
+
+            // কল করার সাথে সাথেই অ্যাড শো করবে
+            try {
+                show_10866872({
+                    type: 'inApp',
+                    inAppSettings: { frequency: 2, capping: 0.1, interval: 30, timeout: 5, everyPage: false }
+                });
+            } catch (e) { console.error("Ad error", e); }
+
+            isAdOn = true;
+            const btn = document.getElementById('btn-play-ad');
+            const status = document.getElementById('ad-status-box');
+            const secDisplay = document.getElementById('ad-sec');
+            
+            btn.disabled = true;
+            btn.classList.add('opacity-50');
+            status.classList.remove('hidden');
+
+            let timer = 20;
+            const interval = setInterval(async () => {
+                timer--;
+                secDisplay.innerText = timer;
+                if (timer <= 0) {
+                    clearInterval(interval);
+                    await updateDoc(doc(db, "users", currentUser.uid), {
+                        balance: increment(10),
+                        totalEarned: increment(10),
+                        adsToday: increment(1)
+                    });
+                    isAdOn = false;
+                    btn.disabled = false;
+                    btn.classList.remove('opacity-50');
+                    status.classList.add('hidden');
+                    tg.showConfirm("Reward: 10 Coins added!");
+                }
+            }, 1000);
+        };
+
+        window.processWithdraw = async () => {
+            const amt = parseInt(document.getElementById('wd-amount').value);
+            const addr = document.getElementById('wd-account').value;
+            const method = document.getElementById('wd-method').value;
+
+            if (!amt || amt < 50000) { tg.showAlert("Minimum withdraw 50,000 Coins"); return; }
+            if (amt > currentUser.balance) { tg.showAlert("Insufficient balance!"); return; }
+            if (addr.length < 5) { tg.showAlert("Enter valid account details"); return; }
+
+            await updateDoc(doc(db, "users", currentUser.uid), { balance: increment(-amt) });
+            await addDoc(collection(db, "withdrawals"), {
+                uid: currentUser.uid, name: currentUser.name,
+                amount: amt, method, address: addr,
+                status: "Pending", createdAt: serverTimestamp()
+            });
+            tg.showAlert("Success! Payout request submitted.");
+            document.getElementById('wd-amount').value = '';
+            document.getElementById('wd-account').value = '';
+        };
+
+        window.claimDaily = async () => {
+            const now = Date.now();
+            if (now - (currentUser.lastDaily || 0) < 86400000) { tg.showAlert("Try again in 24 hours!"); return; }
+            await updateDoc(doc(db, "users", currentUser.uid), { balance: increment(50), totalEarned: increment(50), lastDaily: now });
+            tg.showConfirm("Success! 50 Coins added.");
+        };
+
+        async function loadHistory(uid) {
+            const q = query(collection(db, "withdrawals"), where("uid", "==", uid), orderBy("createdAt", "desc"), limit(5));
+            onSnapshot(q, (snap) => {
+                const box = document.getElementById('wd-history');
+                box.innerHTML = '<h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">Payment Records</h4>';
+                snap.forEach(d => {
+                    const h = d.data();
+                    const sColor = h.status === 'Pending' ? 'text-orange-500 bg-orange-50' : 'text-green-500 bg-green-50';
+                    box.innerHTML += `
+                        <div class="bg-white p-5 rounded-[2rem] flex justify-between items-center shadow-sm border border-slate-50">
+                            <div class="flex items-center space-x-4">
+                                <div class="w-10 h-10 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-400"><i class="fas fa-receipt"></i></div>
+                                <div><p class="text-xs font-black">${h.method}</p><p class="text-[9px] text-slate-400 font-bold">${h.address}</p></div>
+                            </div>
+                            <div class="text-right">
+                                <p class="text-xs font-black">${h.amount.toLocaleString()}</p>
+                                <span class="text-[7px] px-2 py-1 rounded-full font-black uppercase ${sColor}">${h.status}</span>
+                            </div>
+                        </div>`;
+                });
+            });
+        }
+
+        window.showTab = (id) => {
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.add('hidden'));
+            document.getElementById(`tab-${id}`).classList.remove('hidden');
+            document.querySelectorAll('.nav-btn').forEach(n => n.classList.remove('nav-active'));
+            document.querySelector(`[data-tab="${id}"]`).classList.add('nav-active');
+            window.scrollTo(0,0);
+        };
+
+        window.copyRef = () => {
+            navigator.clipboard.writeText(document.getElementById('ref-url').innerText);
+            tg.showAlert("Invite link copied!");
+        };
+
+        init();
+    </script>
+</body>
+</html>
